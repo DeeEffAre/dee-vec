@@ -15,6 +15,12 @@ typedef struct {
 
 typedef vec_t *Vec;
 
+/* Initializes a vec with an initial value `data` and returns a pointer to it
+   `n` is the number of elements
+   `element_size` is the size of the each element in `data`
+   `free_function` is a function pointer which is used when freeing the elements
+   of the vector, provide NULL if the elements of the vector are not need to be
+   freed */
 Vec vec_init(const void *data, size_t n, size_t element_size,
              void (*free_function)(void *)) {
   vec_t *vector = (vec_t *)malloc(sizeof(vec_t));
@@ -53,7 +59,9 @@ Vec vec_init(const void *data, size_t n, size_t element_size,
   return vector;
 }
 
-// 0 on success
+/* Pushes new elements to the vector from `data`
+   `n` is the number of elements in the `data`
+   Returns -1 on fail and 0 on success */
 int vec_push(Vec vec, const void *data, size_t n) {
   if (vec->length + n > vec->capacity) {
     size_t new_capacity = vec->capacity * 2;
@@ -80,7 +88,8 @@ int vec_push(Vec vec, const void *data, size_t n) {
   return 0;
 }
 
-// 0 on success
+/* Shrinks vector capacity to the vector length
+   Returns -1 on fail and 0 on success */
 int vec_shrink(Vec vec) {
   if (vec->length == vec->capacity) {
     return -1;
@@ -99,6 +108,9 @@ int vec_shrink(Vec vec) {
   return 0;
 }
 
+/* Pops the last element in the vector and copies the last element into
+ * `elem_buffer`. If `elem_buffer` is NULL, frees the element using
+ * `free_function` */
 void vec_pop(Vec vec, void *elem_buffer) {
   if (vec->length == 0) {
     elem_buffer = NULL;
@@ -119,6 +131,7 @@ void vec_pop(Vec vec, void *elem_buffer) {
   vec->length--;
 }
 
+/* Returns a pointer to the element at `index` */
 void *vec_get(Vec vec, size_t index) {
   if (index >= vec->length) {
     fprintf(stderr, "Index is out of bound\n");
@@ -128,6 +141,8 @@ void *vec_get(Vec vec, size_t index) {
   return ((char *)vec->data) + (index * vec->element_size);
 }
 
+/* Frees the vector and its elements if `free_function` provided in
+   initialization step */
 void vec_free(Vec *vec) {
   if (vec == NULL)
     return;
@@ -143,6 +158,7 @@ void vec_free(Vec *vec) {
   *vec = NULL;
 }
 
+/* Clears the contents of the vector without freeing it */
 void vec_clear(Vec vec) {
   if (vec->free_function) {
     for (size_t i = 0; i < vec->length; ++i) {
@@ -153,6 +169,9 @@ void vec_clear(Vec vec) {
   vec->length = 0;
 }
 
+/* Returns the length of the vector */
 size_t vec_length(Vec vec) { return vec->length; }
+/* Returns the capacity of the vector */
 size_t vec_capacity(Vec vec) { return vec->capacity; }
+/* Returns the total size in bytes of all elements */
 size_t vec_size(Vec vec) { return vec->length * vec->element_size; }
