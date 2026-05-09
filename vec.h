@@ -10,12 +10,18 @@ typedef struct {
   size_t length;
   size_t capacity;
   size_t element_size;
+  void (*free_function)(void *);
 } vec_t;
 
 typedef vec_t *Vec;
 
-Vec vec_init(const void *data, size_t n, size_t element_size) {
+Vec vec_init(const void *data, size_t n, size_t element_size,
+             void (*free_function)(void *)) {
   vec_t *vector = (vec_t *)malloc(sizeof(vec_t));
+  if (!vector) {
+    return NULL;
+  }
+
   if (data && n > 0) {
 
     if (n < VEC_DEFAULT_CAP) {
@@ -42,6 +48,8 @@ Vec vec_init(const void *data, size_t n, size_t element_size) {
     vector->capacity = VEC_DEFAULT_CAP;
     vector->element_size = element_size;
   }
+
+  vector->free_function = free_function;
   return vector;
 }
 
@@ -91,15 +99,23 @@ int vec_shrink(Vec vec) {
   return 0;
 }
 
-void vec_pop(Vec vec, void *element) {
-  if (vec->length == 0 || element == NULL)
+void vec_pop(Vec vec, void *elem_buffer) {
+  if (vec->length == 0) {
+    elem_buffer = NULL;
     return;
+  }
 
   if (vec->length == 0)
     return;
 
   void *elem = (char *)vec->data + (vec->length - 1) * vec->element_size;
-  memcpy(element, elem, vec->element_size);
+  if (elem_buffer) {
+    memcpy(elem_buffer, elem, vec->element_size);
+  } else {
+    if (vec->free_function) {
+      vec->free_function(elem);
+    }
+  }
   vec->length--;
 }
 
@@ -112,9 +128,29 @@ void *vec_get(Vec vec, size_t index) {
   return ((char *)vec->data) + (index * vec->element_size);
 }
 
-void vec_free(Vec vec) {
-  free(vec->data);
-  free(vec);
+void vec_free(Vec *vec) {
+  if (vec == NULL)
+    return;
+
+  if ((*vec)->free_function) {
+    for (size_t i = 0; i < (*vec)->length; ++i) {
+      (*vec)->free_function(vec_get((*vec), i));
+    }
+  }
+
+  free((*vec)->data);
+  free(*vec);
+  *vec = NULL;
+}
+
+void vec_clear(Vec vec) {
+  if (vec->free_function) {
+    for (size_t i = 0; i < vec->length; ++i) {
+      vec->free_function(vec_get(vec, i));
+    }
+  }
+
+  vec->length = 0;
 }
 
 size_t vec_length(Vec vec) { return vec->length; }
