@@ -1,5 +1,5 @@
 # dee-vec
-[std style single header](https://github.com/nothings/stb) Generic Dynamic Array implementation in C
+[stb style single header](https://github.com/nothings/stb) Generic Dynamic Array implementation in C
 
 ## Quickstart
 
