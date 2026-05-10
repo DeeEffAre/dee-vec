@@ -10,6 +10,21 @@
 #define vec_insert_val(vec, val, index)                                        \
   (vec = vec_insert(vec, &(typeof(val)){val}, 1, index))
 
+/* Returns a pointer to the first element of the vector.
+   Used as a starting point for iterations. */
+#define vec_begin(vec) (vec)
+
+/* Returns a pointer to the memory location just after the last element.
+   The result is cast to the vector's type for type-safe comparisons. */
+#define vec_end(vec)                                                           \
+  ((typeof(vec))((char *)(vec) +                                               \
+                 (vec_length(vec) * GET_VEC_HEADER(vec)->element_size)))
+
+/* A convenience macro for iterating over the vector elements.
+   Automatically declares an iterator variable of the correct type. */
+#define vec_foreach(var, vec)                                                  \
+  for (typeof(vec) var = vec_begin(vec); var != vec_end(vec); ++var)
+
 /* Initializes a vector with default capacity and returns a pointer to its data.
    `element_size`: size of each element in bytes
    `free_function`: used for deep-freeing elements, provide NULL if not needed.
