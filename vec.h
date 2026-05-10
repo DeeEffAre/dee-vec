@@ -3,6 +3,13 @@
 
 #include <stddef.h>
 
+/* Push a single value without creating a temporary array */
+#define vec_push_val(vec, val) (vec = vec_push(vec, &(typeof(val)){val}, 1))
+
+/* Insert a single value at a specific index */
+#define vec_insert_val(vec, val, index)                                        \
+  (vec = vec_insert(vec, &(typeof(val)){val}, 1, index))
+
 /* Initializes a vector with default capacity and returns a pointer to its data.
    `element_size`: size of each element in bytes
    `free_function`: used for deep-freeing elements, provide NULL if not needed.
@@ -33,6 +40,12 @@ static void vec_pop(void *vec, void *elem_buffer);
 
 /* Returns a generic pointer to the element at `index`. */
 static void *vec_get(void *vec, size_t index);
+
+/* Removes an element at a specific index and shifts the remaining elements. */
+static void vec_remove_from(void *vec, size_t index);
+
+/* Inserts `n` elements at `index`. Shifts existing elements to the right. */
+static void *vec_insert(void *vec, const void *data, size_t n, size_t index);
 
 /* Frees the entire vector and its elements if free_function provided. */
 static void vec_free(void **vec_ptr);
@@ -101,32 +114,7 @@ static void *vec_push(void *vec, const void *data, size_t n) {
     return vec;
 
   vec_header_t *header = GET_VEC_HEADER(vec);
-
-  if (header->length + n > header->capacity) {
-    size_t new_capacity = header->capacity * 2;
-    while (new_capacity < header->length + n) {
-      new_capacity *= 2;
-    }
-
-    size_t new_size =
-        sizeof(vec_header_t) + (new_capacity * header->element_size);
-
-    vec_header_t *new_header = (vec_header_t *)realloc(header, new_size);
-
-    if (!new_header) {
-      return vec;
-    }
-
-    header = new_header;
-    new_header->capacity = new_capacity;
-  }
-
-  memcpy(((char *)(header->data)) + (header->length * header->element_size),
-         data, n * header->element_size);
-
-  header->length += n;
-
-  return header->data;
+  return vec_insert(vec, data, n, header->length);
 }
 
 static void *vec_shrink(void *vec) {
@@ -182,6 +170,67 @@ static void *vec_get(void *vec, size_t index) {
   }
 
   return ((char *)(header->data)) + (index * header->element_size);
+}
+
+static void vec_remove_from(void *vec, size_t index) {
+  if (!vec)
+    return;
+
+  vec_header_t *header = GET_VEC_HEADER(vec);
+
+  if (index >= header->length) {
+    fprintf(stderr, "Index is out of bound\n");
+    return;
+  }
+
+  if (header->free_function) {
+    header->free_function(vec_get(vec, index));
+  }
+
+  memmove(((char *)(header->data)) + (index * header->element_size),
+          ((char *)(header->data)) + ((index + 1) * header->element_size),
+          (header->length - index - 1) * header->element_size);
+
+  header->length--;
+}
+
+static void *vec_insert(void *vec, const void *data, size_t n, size_t index) {
+  if (!vec)
+    return NULL;
+
+  vec_header_t *header = GET_VEC_HEADER(vec);
+
+  if (index > header->length) {
+    fprintf(stderr, "Index is out of bound\n");
+    return header->data;
+  }
+
+  if (header->length + n > header->capacity) {
+    size_t new_capacity = header->capacity;
+    while (new_capacity < header->length + n) {
+      new_capacity *= 2;
+    }
+
+    vec_header_t *new_header = (vec_header_t *)realloc(
+        header, sizeof(vec_header_t) + new_capacity * header->element_size);
+
+    if (!new_header) {
+      fprintf(stderr, "Out of memory\n");
+      return header->data;
+    }
+
+    header = new_header;
+    header->capacity = new_capacity;
+  }
+
+  memmove(((char *)(header->data)) + ((index + n) * header->element_size),
+          ((char *)(header->data)) + (index * header->element_size),
+          (header->length - index) * header->element_size);
+  memcpy(((char *)(header->data)) + (index * header->element_size), data,
+         n * header->element_size);
+
+  header->length += n;
+  return header->data;
 }
 
 static void vec_free(void **vec_ptr) {
