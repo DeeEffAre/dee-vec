@@ -50,8 +50,9 @@ static void *vec_push(void *vec, const void *data, size_t n);
 static void *vec_shrink(void *vec);
 
 /* Pops the last element. If `elem_buffer` is not NULL, copies the element
-   there. Otherwise, frees the element using `free_function` if provided. */
-static void vec_pop(void *vec, void *elem_buffer);
+   there. Otherwise, frees the element using `free_function` if provided.
+   Returns 1 on success and 0 on fail */
+static int vec_pop(void *vec, void *elem_buffer);
 
 /* Returns a generic pointer to the element at `index`. */
 static void *vec_get(void *vec, size_t index);
@@ -153,16 +154,12 @@ static void *vec_shrink(void *vec) {
   return header->data;
 }
 
-static void vec_pop(void *vec, void *elem_buffer) {
+static int vec_pop(void *vec, void *elem_buffer) {
   vec_header_t *header = GET_VEC_HEADER(vec);
 
   if (header->length == 0) {
-    elem_buffer = NULL;
-    return;
+    return 0;
   }
-
-  if (header->length == 0)
-    return;
 
   void *elem =
       ((char *)(header->data)) + (header->length - 1) * header->element_size;
@@ -170,10 +167,11 @@ static void vec_pop(void *vec, void *elem_buffer) {
     memcpy(elem_buffer, elem, header->element_size);
   } else {
     if (header->free_function) {
-      header->free_function(elem);
+      header->free_function(*(void **)elem);
     }
   }
   header->length--;
+  return 1;
 }
 
 static void *vec_get(void *vec, size_t index) {
@@ -199,7 +197,8 @@ static void vec_remove_from(void *vec, size_t index) {
   }
 
   if (header->free_function) {
-    header->free_function(vec_get(vec, index));
+    void *elem_slot = vec_get(header->data, index);
+    header->free_function(*(void **)elem_slot);
   }
 
   memmove(((char *)(header->data)) + (index * header->element_size),
@@ -256,7 +255,8 @@ static void vec_free(void **vec_ptr) {
 
   if (header->free_function) {
     for (size_t i = 0; i < header->length; ++i) {
-      header->free_function(vec_get(header->data, i));
+      void *elem_slot = vec_get(header->data, i);
+      header->free_function(*(void **)elem_slot);
     }
   }
 
@@ -269,7 +269,8 @@ static void vec_clear(void *vec) {
 
   if (header->free_function) {
     for (size_t i = 0; i < header->length; ++i) {
-      header->free_function(vec_get(header->data, i));
+      void *elem_slot = vec_get(header->data, i);
+      header->free_function(*(void **)elem_slot);
     }
   }
 
