@@ -3,14 +3,19 @@
 
 #include <stddef.h>
 
-/* Initializes a vector and returns a pointer to its data.
-   `data`: initial elements to copy (optional, can be NULL)
-   `n`: number of initial elements
+/* Initializes a vector with default capacity and returns a pointer to its data.
    `element_size`: size of each element in bytes
    `free_function`: used for deep-freeing elements, provide NULL if not needed.
- */
-static void *vec_init(const void *data, size_t n, size_t element_size,
-                      void (*free_function)(void *));
+*/
+static void *vec_init(size_t element_size, void (*free_function)(void *));
+
+/* Reserves a vector with a specific capacity.
+   `element_size`: size of each element in bytes
+   `cap`: initial capacity to allocate
+   `free_function`: used for deep-freeing elements, provide NULL if not needed.
+*/
+static void *vec_reserve(size_t element_size, size_t cap,
+                         void (*free_function)(void *));
 
 /* Pushes `n` new elements to the vector.
    Returns the (potentially new) pointer to the vector data.
@@ -65,11 +70,15 @@ typedef struct {
   char data[];
 } vec_header_t;
 
-static void *vec_init(const void *data, size_t n, size_t element_size,
-                      void (*free_function)(void *)) {
+static void *vec_init(size_t element_size, void (*free_function)(void *)) {
+  return vec_reserve(element_size, VEC_DEFAULT_CAP, free_function);
+}
+
+static void *vec_reserve(size_t element_size, size_t cap,
+                         void (*free_function)(void *)) {
   size_t allocation_capacity = VEC_DEFAULT_CAP;
-  if (n > VEC_DEFAULT_CAP) {
-    allocation_capacity = n;
+  if (cap > VEC_DEFAULT_CAP) {
+    allocation_capacity = cap;
   }
 
   vec_header_t *header = (vec_header_t *)malloc(
@@ -79,21 +88,11 @@ static void *vec_init(const void *data, size_t n, size_t element_size,
     return NULL;
   }
 
-  if (data && n > 0) {
-    header->capacity = allocation_capacity;
-
-    header->element_size = element_size;
-    memcpy((header->data), data, n * header->element_size);
-
-    header->length = n;
-
-  } else {
-    header->length = 0;
-    header->capacity = VEC_DEFAULT_CAP;
-    header->element_size = element_size;
-  }
-
   header->free_function = free_function;
+  header->length = 0;
+  header->capacity = allocation_capacity;
+  header->element_size = element_size;
+
   return header->data;
 }
 
