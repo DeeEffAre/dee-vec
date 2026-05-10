@@ -1,3 +1,24 @@
+#ifndef VEC_H
+#define VEC_H
+
+#include <stddef.h>
+
+void *vec_init(const void *data, size_t n, size_t element_size,
+               void (*free_function)(void *));
+void *vec_push(void *vec, const void *data, size_t n);
+void *vec_shrink(void *vec);
+void vec_pop(void *vec, void *elem_buffer);
+void *vec_get(void *vec, size_t index);
+void vec_free(void **vec_ptr);
+void vec_clear(void *vec);
+size_t vec_length(void *vec);
+size_t vec_capacity(void *vec);
+size_t vec_size(void *vec);
+
+#endif // !VEC_H
+
+#ifndef VEC_IMPLEMENTATION
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -189,3 +210,5 @@ size_t vec_capacity(void *vec) { return GET_VEC_HEADER(vec)->capacity; }
 size_t vec_size(void *vec) {
   return GET_VEC_HEADER(vec)->length * GET_VEC_HEADER(vec)->element_size;
 }
+
+#endif // !VEC_IMPLEMENTATION
