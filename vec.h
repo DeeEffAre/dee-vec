@@ -29,54 +29,54 @@
    `element_size`: size of each element in bytes
    `free_function`: used for deep-freeing elements, provide NULL if not needed.
 */
-static void *vec_init(size_t element_size, void (*free_function)(void *));
+void *vec_init(size_t element_size, void (*free_function)(void *));
 
 /* Reserves a vector with a specific capacity.
    `element_size`: size of each element in bytes
    `cap`: initial capacity to allocate
    `free_function`: used for deep-freeing elements, provide NULL if not needed.
 */
-static void *vec_reserve(size_t element_size, size_t cap,
-                         void (*free_function)(void *));
+void *vec_reserve(size_t element_size, size_t cap,
+                  void (*free_function)(void *));
 
 /* Pushes `n` new elements to the vector.
    Returns the (potentially new) pointer to the vector data.
    IMPORTANT: Always assign the return value back to your vector variable,
    as realloc may move the memory block. */
-static void *vec_push(void *vec, const void *data, size_t n);
+void *vec_push(void *vec, const void *data, size_t n);
 
 /* Shrinks vector capacity to match its current length.
    Returns the (potentially new) pointer to the vector data. */
-static void *vec_shrink(void *vec);
+void *vec_shrink(void *vec);
 
 /* Pops the last element. If `elem_buffer` is not NULL, copies the element
    there. Otherwise, frees the element using `free_function` if provided.
    Returns 1 on success and 0 on fail */
-static int vec_pop(void *vec, void *elem_buffer);
+int vec_pop(void *vec, void *elem_buffer);
 
 /* Returns a generic pointer to the element at `index`. */
-static void *vec_get(void *vec, size_t index);
+void *vec_get(void *vec, size_t index);
 
 /* Removes an element at a specific index and shifts the remaining elements. */
-static void vec_remove_from(void *vec, size_t index);
+void vec_remove_from(void *vec, size_t index);
 
 /* Inserts `n` elements at `index`. Shifts existing elements to the right. */
-static void *vec_insert(void *vec, const void *data, size_t n, size_t index);
+void *vec_insert(void *vec, const void *data, size_t n, size_t index);
 
 /* Frees the entire vector and its elements if free_function provided. */
-static void vec_free(void **vec_ptr);
+void vec_free(void **vec_ptr);
 
 /* Clears the contents of the vector without freeing it */
-static void vec_clear(void *vec);
+void vec_clear(void *vec);
 
 /* Returns the length of the vector */
-static size_t vec_length(void *vec);
+size_t vec_length(void *vec);
 
 /* Returns the capacity of the vector */
-static size_t vec_capacity(void *vec);
+size_t vec_capacity(void *vec);
 
 /* Returns the total size in bytes of all elements */
-static size_t vec_size(void *vec);
+size_t vec_size(void *vec);
 
 #endif // !VEC_H
 
@@ -99,12 +99,12 @@ typedef struct {
   char data[];
 } vec_header_t;
 
-static void *vec_init(size_t element_size, void (*free_function)(void *)) {
+void *vec_init(size_t element_size, void (*free_function)(void *)) {
   return vec_reserve(element_size, VEC_DEFAULT_CAP, free_function);
 }
 
-static void *vec_reserve(size_t element_size, size_t cap,
-                         void (*free_function)(void *)) {
+void *vec_reserve(size_t element_size, size_t cap,
+                  void (*free_function)(void *)) {
   size_t allocation_capacity = VEC_DEFAULT_CAP;
   if (cap > VEC_DEFAULT_CAP) {
     allocation_capacity = cap;
@@ -125,7 +125,7 @@ static void *vec_reserve(size_t element_size, size_t cap,
   return header->data;
 }
 
-static void *vec_push(void *vec, const void *data, size_t n) {
+void *vec_push(void *vec, const void *data, size_t n) {
   if (!vec || !data || n == 0)
     return vec;
 
@@ -133,7 +133,7 @@ static void *vec_push(void *vec, const void *data, size_t n) {
   return vec_insert(vec, data, n, header->length);
 }
 
-static void *vec_shrink(void *vec) {
+void *vec_shrink(void *vec) {
   vec_header_t *header = GET_VEC_HEADER(vec);
 
   if (header->length == header->capacity) {
@@ -154,7 +154,7 @@ static void *vec_shrink(void *vec) {
   return header->data;
 }
 
-static int vec_pop(void *vec, void *elem_buffer) {
+int vec_pop(void *vec, void *elem_buffer) {
   vec_header_t *header = GET_VEC_HEADER(vec);
 
   if (header->length == 0) {
@@ -174,7 +174,7 @@ static int vec_pop(void *vec, void *elem_buffer) {
   return 1;
 }
 
-static void *vec_get(void *vec, size_t index) {
+void *vec_get(void *vec, size_t index) {
   vec_header_t *header = GET_VEC_HEADER(vec);
 
   if (index >= header->length) {
@@ -185,7 +185,7 @@ static void *vec_get(void *vec, size_t index) {
   return ((char *)(header->data)) + (index * header->element_size);
 }
 
-static void vec_remove_from(void *vec, size_t index) {
+void vec_remove_from(void *vec, size_t index) {
   if (!vec)
     return;
 
@@ -208,7 +208,7 @@ static void vec_remove_from(void *vec, size_t index) {
   header->length--;
 }
 
-static void *vec_insert(void *vec, const void *data, size_t n, size_t index) {
+void *vec_insert(void *vec, const void *data, size_t n, size_t index) {
   if (!vec)
     return NULL;
 
@@ -247,7 +247,7 @@ static void *vec_insert(void *vec, const void *data, size_t n, size_t index) {
   return header->data;
 }
 
-static void vec_free(void **vec_ptr) {
+void vec_free(void **vec_ptr) {
   if (vec_ptr == NULL || *vec_ptr == NULL)
     return;
 
@@ -264,7 +264,7 @@ static void vec_free(void **vec_ptr) {
   *vec_ptr = NULL;
 }
 
-static void vec_clear(void *vec) {
+void vec_clear(void *vec) {
   vec_header_t *header = GET_VEC_HEADER(vec);
 
   if (header->free_function) {
@@ -277,9 +277,9 @@ static void vec_clear(void *vec) {
   header->length = 0;
 }
 
-static size_t vec_length(void *vec) { return GET_VEC_HEADER(vec)->length; }
-static size_t vec_capacity(void *vec) { return GET_VEC_HEADER(vec)->capacity; }
-static size_t vec_size(void *vec) {
+size_t vec_length(void *vec) { return GET_VEC_HEADER(vec)->length; }
+size_t vec_capacity(void *vec) { return GET_VEC_HEADER(vec)->capacity; }
+size_t vec_size(void *vec) {
   return GET_VEC_HEADER(vec)->length * GET_VEC_HEADER(vec)->element_size;
 }
 
